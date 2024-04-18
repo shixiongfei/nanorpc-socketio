@@ -8,3 +8,5 @@
  *
  * https://github.com/shixiongfei/nanorpc-socketio
  */
+
+import { createNanoRPCServer } from "./index.js";

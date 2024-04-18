@@ -12,11 +12,12 @@
 import { NanoValidator, createNanoValidator } from "nanorpc-validator";
 import { NanoMethods, createServer } from "./server.js";
 
+export type NanoSession = { id: string; ip: string; timestamp: number };
+
 export type NanoServerOptions = {
-  secret?: string;
   queued?: boolean;
-  onConnect?: <T>(auth: T) => Promise<string | undefined> | string | undefined;
-  onDisconnect?: (id: string) => void;
+  onConnect?: <T>(session: NanoSession, auth: T) => Promise<boolean> | boolean;
+  onDisconnect?: (session: NanoSession, reason: string) => void;
 };
 
 export class NanoRPCServer {
@@ -24,17 +25,10 @@ export class NanoRPCServer {
   private readonly methods: NanoMethods;
   private readonly server: ReturnType<typeof createServer>;
 
-  constructor(options: NanoServerOptions) {
+  constructor(secret: string, options?: NanoServerOptions) {
     this.validators = createNanoValidator();
     this.methods = {};
-    this.server = createServer(
-      options.secret ?? "",
-      this.validators,
-      this.methods,
-      options.queued ?? false,
-      options.onConnect,
-      options.onDisconnect,
-    );
+    this.server = createServer(secret, this.validators, this.methods, options);
   }
 
   on<T, M extends string, P extends Array<unknown>>(
@@ -59,5 +53,7 @@ export class NanoRPCServer {
   }
 }
 
-export const createNanoRPCServer = (options: NanoServerOptions) =>
-  new NanoRPCServer(options);
+export const createNanoRPCServer = (
+  secret: string,
+  options?: NanoServerOptions,
+) => new NanoRPCServer(secret, options);
