@@ -24,6 +24,10 @@ export type NanoServerOptions = Readonly<{
   onDisconnect?: (session: NanoSession, reason: string) => void;
 }>;
 
+export type NanoMethodOptions = Readonly<{
+  identity?: boolean;
+}>;
+
 export class NanoRPCServer {
   public readonly validators: NanoValidator;
   private readonly methods: NanoMethods;
@@ -38,12 +42,16 @@ export class NanoRPCServer {
   on<T, M extends string, P extends Array<unknown>>(
     method: M,
     func: (...args: P) => T | Promise<T>,
+    options?: NanoMethodOptions,
   ) {
     if (method in this.methods) {
       throw new Error(`${method} method already registered`);
     }
 
-    this.methods[method] = (rpc) => func(...(rpc.arguments as P));
+    this.methods[method] = (id, rpc) =>
+      options?.identity
+        ? func(...([id, ...rpc.arguments] as P))
+        : func(...(rpc.arguments as P));
 
     return this;
   }

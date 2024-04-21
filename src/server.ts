@@ -29,6 +29,7 @@ export enum NanoRPCCode {
 
 export type NanoMethods = {
   [method: string]: (
+    id: string,
     rpc: NanoRPC<string, unknown[]>,
   ) => unknown | Promise<unknown>;
 };
@@ -128,7 +129,7 @@ export const createServer = (
       }
 
       const doFunc = async () => {
-        const result = func(rpc);
+        const result = func(socket.id, rpc);
         return isPromise(result) ? await result : result;
       };
 
