@@ -17,7 +17,15 @@ import { Mutex } from "async-mutex";
 import { Server } from "socket.io";
 import { createParser } from "safety-socketio";
 import { NanoRPC, NanoValidator, createNanoReply } from "nanorpc-validator";
-import { NanoRPCCode, NanoServerOptions, NanoSession } from "./index.js";
+import { NanoServerOptions, NanoSession } from "./index.js";
+
+export enum NanoRPCCode {
+  OK = 0,
+  ProtocolError,
+  MissingMethod,
+  ParameterError,
+  Exception,
+}
 
 export type NanoMethods = {
   [method: string]: (

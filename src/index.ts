@@ -12,14 +12,6 @@
 import { NanoValidator, createNanoValidator } from "nanorpc-validator";
 import { NanoMethods, createServer } from "./server.js";
 
-export enum NanoRPCCode {
-  OK = 0,
-  ProtocolError,
-  MissingMethod,
-  ParameterError,
-  Exception,
-}
-
 export type NanoSession = Readonly<{
   id: string;
   ip: string;
