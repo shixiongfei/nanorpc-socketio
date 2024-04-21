@@ -11,8 +11,24 @@
 
 import { createNanoRPCServer } from "./index.js";
 
-const rpc = createNanoRPCServer("52440ec2-2a22-4544-93a7-161dfc47239a");
+const test = async () => {
+  const rpc = createNanoRPCServer({
+    onConnect: async (session) => {
+      const timestamp: number | undefined = await rpc
+        .client(session.id)
+        ?.call("ping", Date.now());
 
-rpc.on("add", (a: number, b: number) => a + b);
+      if (timestamp) {
+        console.log(`Client ${session.id} RTT: ${Date.now() - timestamp} ms`);
+      }
 
-rpc.run(4000);
+      return true;
+    },
+  });
+
+  rpc.on("add", (a: number, b: number) => a + b);
+
+  rpc.run(4000);
+};
+
+test();

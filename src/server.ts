@@ -18,6 +18,7 @@ import { Server } from "socket.io";
 import { createParser } from "safety-socketio";
 import { NanoRPC, NanoValidator, createNanoReply } from "nanorpc-validator";
 import { NanoServerOptions, NanoSession } from "./index.js";
+import { NanoRPCClient } from "./client.js";
 
 export enum NanoRPCCode {
   OK = 0,
@@ -35,9 +36,9 @@ export type NanoMethods = {
 };
 
 export const createServer = (
-  secret: string,
   validators: NanoValidator,
   methods: NanoMethods,
+  clients: { [id: string]: NanoRPCClient },
   options?: NanoServerOptions,
 ) => {
   const mutex = options?.queued ? new Mutex() : undefined;
@@ -51,7 +52,7 @@ export const createServer = (
   const server = http.createServer(app);
 
   const io = new Server(server, {
-    parser: createParser(secret),
+    parser: options?.secret ? createParser(options.secret) : undefined,
     transports: ["websocket"],
   });
 
@@ -67,26 +68,11 @@ export const createServer = (
       timestamp: Date.now(),
     });
 
-    if (options?.onConnect) {
-      const connecting = options.onConnect(session, socket.handshake.auth);
-      const allowed = isPromise(connecting) ? await connecting : connecting;
-
-      if (!allowed) {
-        return socket.disconnect();
-      }
-    }
-
-    socket.on("error", (error) => {
-      if (options?.onDisconnect) {
-        options.onDisconnect(session, error.message);
-      }
-      return socket.disconnect();
-    });
-
     socket.on("disconnect", (reason) => {
       if (options?.onDisconnect) {
         options.onDisconnect(session, reason);
       }
+      delete clients[session.id];
     });
 
     socket.on("/nanorpcs", async (rpc: NanoRPC<string, unknown[]>, resp) => {
@@ -155,6 +141,17 @@ export const createServer = (
         return resp(reply);
       }
     });
+
+    clients[session.id] = new NanoRPCClient(session, socket, options?.timeout);
+
+    if (options?.onConnect) {
+      const connecting = options.onConnect(session, socket.handshake.auth);
+      const allowed = isPromise(connecting) ? await connecting : connecting;
+
+      if (!allowed) {
+        return socket.disconnect();
+      }
+    }
   });
 
   return server;
