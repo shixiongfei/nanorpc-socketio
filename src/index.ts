@@ -48,10 +48,12 @@ export class NanoRPCServer {
       throw new Error(`${method} method already registered`);
     }
 
-    this.methods[method] = (id, rpc) =>
-      options?.identity
-        ? func(...([id, ...rpc.arguments] as P))
-        : func(...(rpc.arguments as P));
+    this.methods[method] = (id, rpc) => {
+      const args = options?.identity
+        ? ([id, ...rpc.arguments] as P)
+        : (rpc.arguments as P);
+      return func(...args);
+    };
 
     return this;
   }
