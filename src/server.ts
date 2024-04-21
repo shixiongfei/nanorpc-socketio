@@ -13,10 +13,11 @@ import { isPromise } from "node:util/types";
 import http from "node:http";
 import express from "express";
 import cors from "cors";
+import { Mutex } from "async-mutex";
 import { Server } from "socket.io";
 import { createParser } from "safety-socketio";
-import { NanoRPC, NanoValidator } from "nanorpc-validator";
-import { NanoServerOptions, NanoSession } from "./index.js";
+import { NanoRPC, NanoValidator, createNanoReply } from "nanorpc-validator";
+import { NanoRPCCode, NanoServerOptions, NanoSession } from "./index.js";
 
 export type NanoMethods = {
   [method: string]: (
@@ -30,6 +31,7 @@ export const createServer = (
   methods: NanoMethods,
   options?: NanoServerOptions,
 ) => {
+  const mutex = options?.queued ? new Mutex() : undefined;
   const app = express();
 
   app.set("trust proxy", true);
@@ -45,7 +47,7 @@ export const createServer = (
   });
 
   io.on("connection", async (socket) => {
-    const session: NanoSession = {
+    const session: NanoSession = Object.freeze({
       id: socket.id,
       ip:
         "x-forwarded-for" in socket.handshake.headers
@@ -54,7 +56,7 @@ export const createServer = (
               .trim()
           : socket.handshake.address,
       timestamp: Date.now(),
-    };
+    });
 
     if (options?.onConnect) {
       const connecting = options.onConnect(session, socket.handshake.auth);
@@ -75,6 +77,73 @@ export const createServer = (
     socket.on("disconnect", (reason) => {
       if (options?.onDisconnect) {
         options.onDisconnect(session, reason);
+      }
+    });
+
+    socket.on("/nanorpcs", async (rpc: NanoRPC<string, unknown[]>, resp) => {
+      if (typeof resp !== "function") {
+        return;
+      }
+
+      if (!rpc || !("method" in rpc) || typeof rpc.method !== "string") {
+        const reply = createNanoReply(
+          rpc?.id ?? "",
+          NanoRPCCode.ProtocolError,
+          "Protocol Error",
+        );
+        return resp(reply);
+      }
+
+      const func = methods[rpc.method];
+
+      if (!func) {
+        const reply = createNanoReply(
+          rpc?.id ?? "",
+          NanoRPCCode.MissingMethod,
+          "Missing Method",
+        );
+        return resp(reply);
+      }
+
+      const validator = validators.getValidator(rpc.method);
+
+      if (validator && !validator(rpc)) {
+        const lines = validator.errors!.map(
+          (err) => `${err.keyword}: ${err.instancePath}, ${err.message}`,
+        );
+        const reply = createNanoReply(
+          (rpc as { id?: string })?.id ?? "",
+          NanoRPCCode.ParameterError,
+          lines.join("\n"),
+        );
+        return resp(reply);
+      }
+
+      const doFunc = async () => {
+        const result = func(rpc);
+        return isPromise(result) ? await result : result;
+      };
+
+      try {
+        const retval = mutex
+          ? await mutex.runExclusive(doFunc)
+          : await doFunc();
+
+        const reply = createNanoReply(rpc.id, 0, "OK", retval);
+        return resp(reply);
+      } catch (error) {
+        const message =
+          typeof error === "string"
+            ? error
+            : error instanceof Error
+              ? error.message
+              : `${error}`;
+        const reply = createNanoReply(
+          rpc?.id ?? "",
+          NanoRPCCode.Exception,
+          message,
+        );
+        return resp(reply);
       }
     });
   });

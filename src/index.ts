@@ -12,13 +12,25 @@
 import { NanoValidator, createNanoValidator } from "nanorpc-validator";
 import { NanoMethods, createServer } from "./server.js";
 
-export type NanoSession = { id: string; ip: string; timestamp: number };
+export enum NanoRPCCode {
+  OK = 0,
+  ProtocolError,
+  MissingMethod,
+  ParameterError,
+  Exception,
+}
 
-export type NanoServerOptions = {
+export type NanoSession = Readonly<{
+  id: string;
+  ip: string;
+  timestamp: number;
+}>;
+
+export type NanoServerOptions = Readonly<{
   queued?: boolean;
   onConnect?: <T>(session: NanoSession, auth: T) => Promise<boolean> | boolean;
   onDisconnect?: (session: NanoSession, reason: string) => void;
-};
+}>;
 
 export class NanoRPCServer {
   public readonly validators: NanoValidator;
