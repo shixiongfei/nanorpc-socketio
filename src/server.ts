@@ -72,7 +72,10 @@ export const createServer = (
       if (options?.onDisconnect) {
         options.onDisconnect(session, reason);
       }
-      delete clients[session.id];
+
+      if (session.id in clients) {
+        delete clients[session.id];
+      }
     });
 
     socket.on("/nanorpcs", async (rpc: NanoRPC<string, unknown[]>, resp) => {
