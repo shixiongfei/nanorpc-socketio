@@ -13,6 +13,7 @@ import { createNanoRPCServer } from "./index.js";
 
 const test = async () => {
   const rpc = createNanoRPCServer({
+    secret: "2f278d5f-2b90-4230-8cec-10f70f3feb06",
     onConnect: async (session) => {
       const timestamp: number | undefined = await rpc
         .client(session.id)
