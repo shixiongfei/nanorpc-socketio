@@ -73,7 +73,11 @@ export class NanoRPCServer {
   }
 
   run(port: number, listener?: () => void) {
-    this.server.listen(port, listener);
+    this.server.listen(port);
+
+    if (listener) {
+      listener();
+    }
 
     return () => {
       this.server.close();

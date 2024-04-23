@@ -10,9 +10,6 @@
  */
 
 import { isPromise } from "node:util/types";
-import http from "node:http";
-import express from "express";
-import cors from "cors";
 import { Mutex } from "async-mutex";
 import { Server } from "socket.io";
 import { createParser } from "safety-socketio";
@@ -42,18 +39,11 @@ export const createServer = (
   options?: NanoServerOptions,
 ) => {
   const mutex = options?.queued ? new Mutex() : undefined;
-  const app = express();
 
-  app.set("trust proxy", true);
-  app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
-
-  const server = http.createServer(app);
-
-  const io = new Server(server, {
+  const io = new Server({
     parser: options?.secret ? createParser(options.secret) : undefined,
     transports: ["websocket"],
+    cors: { origin: "*" },
   });
 
   io.on("connection", async (socket) => {
@@ -157,5 +147,5 @@ export const createServer = (
     }
   });
 
-  return server;
+  return io;
 };
