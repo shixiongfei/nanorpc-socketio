@@ -1,6 +1,6 @@
 {
   "name": "nanorpc-socketio",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "An RPC library based on socket.io.",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
