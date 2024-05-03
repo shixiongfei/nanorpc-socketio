@@ -72,6 +72,22 @@ export class NanoRPCServer {
     return this;
   }
 
+  publish<P extends Array<unknown>>(channels: string | string[], ...args: P) {
+    if (typeof channels === "string") {
+      this.server.to(channels).emit("/publish", [channels], ...args);
+    } else {
+      if (Array.isArray(channels)) {
+        channels = channels.filter((channel) => typeof channel === "string");
+
+        if (channels.length > 0) {
+          this.server.to(channels).emit("/publish", channels, ...args);
+        }
+      }
+    }
+
+    return this;
+  }
+
   run(port: number, listener?: () => void) {
     this.server.listen(port);
 

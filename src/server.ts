@@ -68,6 +68,38 @@ export const createServer = (
       }
     });
 
+    socket.on("/subscribe", (channels: string | string[], resp) => {
+      if (!Array.isArray(channels)) {
+        channels = [channels];
+      }
+
+      channels = channels.filter((channel) => typeof channel === "string");
+
+      if (channels.length > 0) {
+        socket.join(channels);
+      }
+
+      if (typeof resp === "function") {
+        resp(channels);
+      }
+    });
+
+    socket.on("/unsubscribe", (channels: string | string[], resp) => {
+      if (!Array.isArray(channels)) {
+        channels = [channels];
+      }
+
+      channels = channels.filter((channel) => typeof channel === "string");
+
+      channels.forEach((channel) => {
+        socket.leave(channel);
+      });
+
+      if (typeof resp === "function") {
+        resp(channels);
+      }
+    });
+
     socket.on("/nanorpcs", async (rpc: NanoRPC<string, unknown[]>, resp) => {
       if (typeof resp !== "function") {
         return;

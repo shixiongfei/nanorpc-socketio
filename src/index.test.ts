@@ -29,6 +29,11 @@ const test = async () => {
 
   rpc.on("add", (a: number, b: number) => a + b);
 
+  rpc.on("publish", () => {
+    rpc.publish("test-channel", "HelloWorld!");
+    rpc.publish(["test-channel"], "HelloWorld!");
+  });
+
   rpc.run(4000);
 };
 
