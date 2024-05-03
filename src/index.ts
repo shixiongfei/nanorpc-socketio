@@ -88,6 +88,11 @@ export class NanoRPCServer {
     return this;
   }
 
+  broadcast<P extends Array<unknown>>(event: string, ...args: P) {
+    this.server.emit(`/message/${event}`, ...args);
+    return this;
+  }
+
   run(port: number, listener?: () => void) {
     this.server.listen(port);
 

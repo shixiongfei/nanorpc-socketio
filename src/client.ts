@@ -18,15 +18,18 @@ import {
 } from "nanorpc-validator";
 import { NanoSession } from "./index.js";
 import { NanoRPCCode } from "./server.js";
+import { NanoRPCMessage } from "./message.js";
 
 export class NanoRPCClient {
   public readonly validators: NanoValidator;
+  public readonly message: NanoRPCMessage;
   public readonly session: NanoSession;
   private readonly timeout: number;
   private readonly socket: Socket;
 
   constructor(session: NanoSession, socket: Socket, timeout?: number) {
     this.validators = createNanoValidator();
+    this.message = new NanoRPCMessage(socket);
     this.session = session;
     this.timeout = timeout ?? 0;
     this.socket = socket;

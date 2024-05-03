@@ -29,10 +29,16 @@ const test = async () => {
 
   rpc.on("add", (a: number, b: number) => a + b);
 
-  rpc.on("publish", () => {
-    rpc.publish("test-channel", "HelloWorld!");
-    rpc.publish(["test-channel"], "HelloWorld!");
-  });
+  rpc.on(
+    "publish",
+    (id: string) => {
+      rpc.client(id)?.message.send("test-event", "Hello Event!");
+      rpc.broadcast("test-event", "Hello Events!");
+      rpc.publish("test-channel", "Hello Channel!");
+      rpc.publish(["test-channel"], "Hello Channels!");
+    },
+    { identity: true },
+  );
 
   rpc.run(4000);
 };
