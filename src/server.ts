@@ -28,7 +28,7 @@ export enum NanoRPCCode {
 export type NanoMethods = {
   [method: string]: (
     id: string,
-    rpc: NanoRPC<string, unknown[]>,
+    rpc: NanoRPC<unknown[]>,
   ) => unknown | Promise<unknown>;
 };
 
@@ -100,7 +100,7 @@ export const createServer = (
       }
     });
 
-    socket.on("/nanorpcs", async (rpc: NanoRPC<string, unknown[]>, resp) => {
+    socket.on("/nanorpcs", async (rpc: NanoRPC<unknown[]>, resp) => {
       if (typeof resp !== "function") {
         return;
       }
