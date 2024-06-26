@@ -53,8 +53,8 @@ export class NanoRPCServer {
     return id in this.clients ? this.clients[id] : undefined;
   }
 
-  on<T, M extends string, P extends Array<unknown>>(
-    method: M,
+  on<T, P extends Array<unknown>>(
+    method: string,
     func: (...args: P) => T | Promise<T>,
     options?: NanoMethodOptions,
   ) {
