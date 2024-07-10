@@ -73,8 +73,6 @@ export const createServer = (
         channels = [channels];
       }
 
-      channels = channels.filter((channel) => typeof channel === "string");
-
       if (channels.length > 0) {
         socket.join(channels);
       }
@@ -88,8 +86,6 @@ export const createServer = (
       if (!Array.isArray(channels)) {
         channels = [channels];
       }
-
-      channels = channels.filter((channel) => typeof channel === "string");
 
       channels.forEach((channel) => {
         socket.leave(channel);
