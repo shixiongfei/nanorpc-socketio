@@ -23,7 +23,13 @@ export type NanoServerOptions = Readonly<{
   secret?: string;
   queued?: boolean;
   timeout?: number;
-  onConnect?: <T>(session: NanoSession, auth: T) => Promise<boolean> | boolean;
+
+  onConnect?: (
+    session: NanoSession,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    auth: { [key: string]: any },
+  ) => Promise<boolean> | boolean;
+
   onDisconnect?: (session: NanoSession, reason: string) => void;
 }>;
 
