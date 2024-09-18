@@ -9,9 +9,28 @@
  * https://github.com/shixiongfei/nanorpc-socketio
  */
 
-import { NanoValidator, createNanoValidator } from "nanorpc-validator";
+import {
+  NanoRPCError,
+  NanoValidator,
+  createNanoValidator,
+} from "nanorpc-validator";
 import { NanoMethods, createServer } from "./server.js";
 import { NanoRPCClient } from "./client.js";
+
+export * from "nanorpc-validator";
+
+export enum NanoRPCStatus {
+  OK = 0,
+  Exception,
+}
+
+export enum NanoRPCErrCode {
+  DuplicateMethod = -1,
+  ProtocolError = -2,
+  MissingMethod = -3,
+  ParameterError = -4,
+  CallError = -5,
+}
 
 export type NanoSession = Readonly<{
   id: string;
@@ -65,13 +84,20 @@ export class NanoRPCServer {
     options?: NanoMethodOptions,
   ) {
     if (method in this.methods) {
-      throw new Error(`${method} method already registered`);
+      throw new NanoRPCError(
+        NanoRPCErrCode.DuplicateMethod,
+        `${method} method already registered`,
+      );
     }
 
     this.methods[method] = (id, rpc) => {
-      const args = options?.identity
-        ? ([id, ...rpc.arguments] as P)
-        : (rpc.arguments as P);
+      const params = Array.isArray(rpc.params)
+        ? rpc.params
+        : rpc.params
+          ? [rpc.params]
+          : [];
+      const args = (options?.identity ? [id, ...params] : params) as P;
+
       return func(...args);
     };
 

@@ -11,13 +11,13 @@
 
 import { Socket } from "socket.io";
 import {
+  NanoRPCError,
   NanoReply,
   NanoValidator,
   createNanoRPC,
   createNanoValidator,
 } from "nanorpc-validator";
-import { NanoSession } from "./index.js";
-import { NanoRPCCode } from "./server.js";
+import { NanoRPCErrCode, NanoRPCStatus, NanoSession } from "./index.js";
 import { NanoRPCMessage } from "./message.js";
 
 export class NanoRPCClient {
@@ -64,14 +64,20 @@ export class NanoRPCClient {
         );
         const error = lines.join("\n");
 
-        throw new Error(`NanoRPC call ${method}, ${error}`);
+        throw new NanoRPCError(
+          NanoRPCErrCode.CallError,
+          `Call ${method}, ${error}`,
+        );
       }
 
-      if (reply.code !== NanoRPCCode.OK) {
-        throw new Error(`NanoRPC call ${method} ${reply.message}`);
+      if (reply.status !== NanoRPCStatus.OK) {
+        throw new NanoRPCError(
+          reply.error?.code ?? NanoRPCErrCode.CallError,
+          `Call ${method} ${reply.error?.message ?? "unknown error"}`,
+        );
       }
 
-      return reply.value;
+      return reply.result;
     };
 
     return new Promise<T | undefined>((resolve, reject) => {

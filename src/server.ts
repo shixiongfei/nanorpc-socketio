@@ -13,17 +13,15 @@ import { isPromise } from "node:util/types";
 import { Mutex } from "async-mutex";
 import { Server } from "socket.io";
 import { createParser } from "safety-socketio";
-import { NanoRPC, NanoValidator, createNanoReply } from "nanorpc-validator";
-import { NanoServerOptions, NanoSession } from "./index.js";
+import { NanoRPC, NanoRPCError, NanoValidator } from "nanorpc-validator";
+import { createNanoRPCError, createNanoReply } from "nanorpc-validator";
 import { NanoRPCClient } from "./client.js";
-
-export enum NanoRPCCode {
-  OK = 0,
-  ProtocolError,
-  MissingMethod,
-  ParameterError,
-  Exception,
-}
+import {
+  NanoRPCErrCode,
+  NanoRPCStatus,
+  NanoServerOptions,
+  NanoSession,
+} from "./index.js";
 
 export type NanoMethods = {
   [method: string]: (
@@ -102,9 +100,10 @@ export const createServer = (
       }
 
       if (!rpc || !("method" in rpc) || typeof rpc.method !== "string") {
-        const reply = createNanoReply(
+        const reply = createNanoRPCError(
           rpc?.id ?? "",
-          NanoRPCCode.ProtocolError,
+          NanoRPCStatus.Exception,
+          NanoRPCErrCode.ProtocolError,
           "Protocol Error",
         );
         return resp(reply);
@@ -113,9 +112,10 @@ export const createServer = (
       const func = methods[rpc.method];
 
       if (!func) {
-        const reply = createNanoReply(
+        const reply = createNanoRPCError(
           rpc?.id ?? "",
-          NanoRPCCode.MissingMethod,
+          NanoRPCStatus.Exception,
+          NanoRPCErrCode.MissingMethod,
           "Missing Method",
         );
         return resp(reply);
@@ -127,9 +127,10 @@ export const createServer = (
         const lines = validator.errors!.map(
           (err) => `${err.keyword}: ${err.instancePath}, ${err.message}`,
         );
-        const reply = createNanoReply(
+        const reply = createNanoRPCError(
           (rpc as { id?: string })?.id ?? "",
-          NanoRPCCode.ParameterError,
+          NanoRPCStatus.Exception,
+          NanoRPCErrCode.ParameterError,
           lines.join("\n"),
         );
         return resp(reply);
@@ -145,20 +146,29 @@ export const createServer = (
           ? await mutex.runExclusive(doFunc)
           : await doFunc();
 
-        const reply = createNanoReply(rpc.id, 0, "OK", retval);
+        const reply = createNanoReply(rpc.id, NanoRPCStatus.OK, retval);
+
         return resp(reply);
       } catch (error) {
-        const message =
-          typeof error === "string"
-            ? error
-            : error instanceof Error
-              ? error.message
-              : `${error}`;
-        const reply = createNanoReply(
-          rpc?.id ?? "",
-          NanoRPCCode.Exception,
-          message,
-        );
+        const reply =
+          error instanceof NanoRPCError
+            ? createNanoRPCError(
+                rpc?.id ?? "",
+                NanoRPCStatus.Exception,
+                error.code,
+                error.message,
+              )
+            : createNanoRPCError(
+                rpc?.id ?? "",
+                NanoRPCStatus.Exception,
+                NanoRPCErrCode.CallError,
+                typeof error === "string"
+                  ? error
+                  : error instanceof Error
+                    ? error.message
+                    : `${error}`,
+              );
+
         return resp(reply);
       }
     });
